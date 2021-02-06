@@ -1,5 +1,8 @@
 package com.de.services;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -7,6 +10,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 public class FlyBookingService {
+
+    private static final Logger logger = LoggerFactory.getLogger(FlyBookingService.class);
 
     private static final String INSERT_IN_TRANSACTION = "BEGIN; INSERT INTO fly_booking (client_name, fly_number, "
             + "fromdest, todest, date) VALUES (?,?,?,?,?);";
@@ -40,20 +45,22 @@ public class FlyBookingService {
     }
 
     public void commitBooking(String transactionId) {
+        final String flyTransactionId = createTransactionId(transactionId);
         try (final Connection connection = dataSource.getConnection();
              final Statement statement = connection.createStatement()) {
-            statement.execute(String.format(COMMIT_TRANSACTION, createTransactionId(transactionId)));
+            statement.execute(String.format(COMMIT_TRANSACTION, flyTransactionId));
         } catch (SQLException exception) {
-            throw new RuntimeException("Failed to commit");
+            logger.warn("Failed to commit fly booking {}", flyTransactionId);
         }
     }
 
     public void rollbackBooking(String transactionId) {
+        final String flyTransactionId = createTransactionId(transactionId);
         try (final Connection connection = dataSource.getConnection();
              final Statement statement = connection.createStatement();) {
-            statement.execute(String.format(ROLLBACK_TRANSACTION, createTransactionId(transactionId)));
+            statement.execute(String.format(ROLLBACK_TRANSACTION, flyTransactionId));
         } catch (SQLException exception) {
-            throw new RuntimeException("Failed to rollback");
+            logger.warn("Failed to rollback fly booking transaction {}", flyTransactionId);
         }
     }
 

@@ -15,15 +15,17 @@ public class BookingService {
     }
 
     public void book(String transactionId) {
-        flyBookingService.bookFlyTicket(transactionId);
-        hotelBookingService.bookHotel(transactionId);
         try {
+            flyBookingService.bookFlyTicket(transactionId);
+            hotelBookingService.bookHotel(transactionId);
             accountManagementService.withdrawAccount(transactionId);
         } catch (RuntimeException ex) {
             flyBookingService.rollbackBooking(transactionId);
             hotelBookingService.rollbackBooking(transactionId);
+            accountManagementService.rollbackBooking(transactionId);
             return;
         }
+        // commit should not fail as it is prepared transaction
         flyBookingService.commitBooking(transactionId);
         hotelBookingService.commitBooking(transactionId);
         accountManagementService.commitBooking(transactionId);

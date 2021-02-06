@@ -1,5 +1,8 @@
 package com.de.services;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -8,8 +11,10 @@ import java.sql.Statement;
 
 public class HotelBookingService {
 
-    private static final String INSERT_IN_TRANSACTION = "BEGIN; INSERT INTO hotel_booking (client_name, hotel_name, " +
-            "arrival, departure) VALUES (?,?,?,?);";
+    private static final Logger logger = LoggerFactory.getLogger(HotelBookingService.class);
+
+    private static final String INSERT_IN_TRANSACTION = "BEGIN; INSERT INTO hotel_booking (client_name, hotel_name, "
+            + "arrival, departure) VALUES (?,?,?,?);";
     private static final String PREPARE_TRANSACTION = "PREPARE TRANSACTION '%s';";
     private static final String COMMIT_TRANSACTION = "COMMIT PREPARED '%s';";
     private static final String ROLLBACK_TRANSACTION = "ROLLBACK PREPARED '%s';";
@@ -39,20 +44,22 @@ public class HotelBookingService {
     }
 
     public void commitBooking(String transactionId) {
+        final String hotelTransactionId = createTransactionId(transactionId);
         try (final Connection connection = dataSource.getConnection();
              final Statement statement = connection.createStatement();) {
-            statement.execute(String.format(COMMIT_TRANSACTION, createTransactionId(transactionId)));
+            statement.execute(String.format(COMMIT_TRANSACTION, hotelTransactionId));
         } catch (SQLException exception) {
-            throw new RuntimeException("Failed to commit");
+            logger.warn("Failed to commit hotel booking {}", hotelTransactionId);
         }
     }
 
     public void rollbackBooking(String transactionId) {
+        final String hotelTransactionId = createTransactionId(transactionId);
         try (final Connection connection = dataSource.getConnection();
              final Statement statement = connection.createStatement();) {
-            statement.execute(String.format(ROLLBACK_TRANSACTION, createTransactionId(transactionId)));
+            statement.execute(String.format(ROLLBACK_TRANSACTION, hotelTransactionId));
         } catch (SQLException exception) {
-            throw new RuntimeException("Failed to rollback");
+            logger.warn("Failed to commit hotel booking {}", hotelTransactionId);
         }
     }
 

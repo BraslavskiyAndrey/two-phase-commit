@@ -1,5 +1,8 @@
 package com.de.services;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -7,6 +10,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 public class AccountManagementService {
+    
+    private static final Logger logger = LoggerFactory.getLogger(AccountManagementService.class);
 
     private static final String UPDATE_BALANCE = "BEGIN; UPDATE account SET amount = amount - 100 WHERE id = 1;";
     private static final String PREPARE_TRANSACTION = "PREPARE TRANSACTION '%s';";
@@ -34,22 +39,24 @@ public class AccountManagementService {
     }
 
     public void commitBooking(String transactionId) {
+        final String accountTransactionId = createTransactionId(transactionId);
         try (final Connection connection = dataSource.getConnection();
              final Statement statement = connection.createStatement();) {
-            statement.execute(String.format(COMMIT_TRANSACTION, createTransactionId(transactionId)));
+            statement.execute(String.format(COMMIT_TRANSACTION, accountTransactionId));
         } catch (SQLException exception) {
-            throw new RuntimeException("Failed to commit");
+            logger.warn("Failed to commit account transaction {}", accountTransactionId);
         }
     }
 
     public void rollbackBooking(String transactionId) {
+        final String accountTransactionId = createTransactionId(transactionId);
         try (final Connection connection = dataSource.getConnection();
              final Statement statement = connection.createStatement();) {
             connection.setAutoCommit(false);
-            statement.execute(String.format(ROLLBACK_TRANSACTION, createTransactionId(transactionId)));
+            statement.execute(String.format(ROLLBACK_TRANSACTION, accountTransactionId));
             connection.commit();
         } catch (SQLException exception) {
-            throw new RuntimeException("Failed to rollback");
+            logger.warn("Failed to rollback account transaction {}", accountTransactionId);
         }
     }
 
